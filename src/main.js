@@ -1,5 +1,5 @@
 import './style.css';
-const PROFILE = {"day":"Day056","title":"Runout Forecast Log","display_name_ja":"飲み切り見通しログ","one_sentence":"使い切り時期を先に見て補充タイミングを残すツール","purpose_line_ja":"補充タイミングを見通しやすくするためのツールです。","use_case_line_ja":"残りが不安で買い足し時期を決めたい時に使います。","how_it_works_line_ja":"残量と使う頻度を入れると、切れそうな順と買い足し日が分かります。","core_action":"log","family":"runout_forecast_log","mechanic":"block_fill","input_style":"shelf_tokens","output_style":"urgency_shelf","output_label":"今日見る棚はここです","audience_promise":"補充のタイミングを先に決められる。","publish_hook":"残量や使う頻度を自分で追加・編集すると、切れそうな順と買い足し日がログで揃う。","engine":"brief_driven","interaction_archetype":"block_fill","page_archetype":"pantry_board","ui_variant":"request","intro_variant":"request_frame","interaction_model":"fill_missing_request_blocks","primary_layout":"request_cards_grid","result_presentation_style":"missing_vs_filled_cards","palette_motif":"依頼メモサンド","main_cta":"依頼メモで試す","input_panel_title":"空いている枠を埋める","sample_panel_title":"依頼メモで試す","guide_panel_title":"抜けを減らすコツ","hero_panel_label":"伝わる依頼文","output_shape":"pantry_board","state_model":"block_fill_state","core_loop":"shelf_tokens -> block_fill -> urgency_shelf","component_pack":"pantry_board+urgency_shelf","scaffold_id":"brief_canvas","single_shot_text_generator":false};
+const PROFILE = {"day":"Day056","title":"Runout Forecast Log","display_name_ja":"飲み切り見通しログ","one_sentence":"使い切り時期を先に見て補充タイミングを残すツール","purpose_line_ja":"補充タイミングを見通しやすくするためのツールです。","use_case_line_ja":"残りが不安で買い足し時期を決めたい時に使います。","how_it_works_line_ja":"残量と使う頻度を入れると、切れそうな順と買い足し日が分かります。","core_action":"log","family":"runout_forecast_log","mechanic":"block_fill","input_style":"shelf_tokens","output_style":"urgency_shelf","output_label":"ここを見ればOKです","audience_promise":"補充のタイミングを先に決められる。","publish_hook":"残量や使う頻度を自分で追加・編集すると、切れそうな順と買い足し日がログで揃う。","engine":"brief_driven","interaction_archetype":"block_fill","page_archetype":"pantry_board","ui_variant":"pantry","intro_variant":"runout_log","interaction_model":"edit_consumable_rows_with_runout_dates","primary_layout":"consumable_rows_with_runout_shelf","result_presentation_style":"soon_week_later_shelf","palette_motif":"補充グリーン","main_cta":"補充サンプルで試す","input_panel_title":"品目と残量を入れる","sample_panel_title":"補充サンプルで試す","guide_panel_title":"切れそう順の見どころ","hero_panel_label":"切れそう順","output_shape":"pantry_board","state_model":"runout_log_state","core_loop":"shelf_tokens -> block_fill -> urgency_shelf","component_pack":"pantry_board+urgency_shelf","scaffold_id":"brief_canvas","single_shot_text_generator":false};
 const byId = (id) => document.getElementById(id);
 const state = {
   tokens: ['買う', '待つ', '比べる', '今週中'],
@@ -35,11 +35,42 @@ function boot() {
 }
 
 function setupCommonUi() {
+  applyBriefChrome();
   const btn = byId('sampleFillBtn');
   if (btn) {
     btn.addEventListener('click', runSample);
   }
   updateCaptureReady();
+}
+
+function applyBriefChrome() {
+  const app = byId('app');
+  if (app) {
+    app.dataset.uiVariant = PROFILE.ui_variant || app.dataset.uiVariant || 'pantry';
+    app.dataset.primaryLayout = PROFILE.primary_layout || app.dataset.primaryLayout || 'brief_canvas';
+  }
+  const firstView = document.querySelector('.first-view');
+  if (firstView) {
+    [...firstView.classList].filter((name) => name.startsWith('first-view--')).forEach((name) => firstView.classList.remove(name));
+    firstView.classList.add(`first-view--${PROFILE.ui_variant || 'pantry'}`);
+  }
+  const briefCanvas = document.querySelector('.brief-canvas');
+  if (briefCanvas) {
+    [...briefCanvas.classList].filter((name) => name.startsWith('brief-canvas--')).forEach((name) => briefCanvas.classList.remove(name));
+    briefCanvas.classList.add(`brief-canvas--${PROFILE.ui_variant || 'pantry'}`);
+  }
+  const setText = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node && value) node.textContent = value;
+  };
+  setText('.first-view__eyebrow', PROFILE.palette_motif);
+  setText('.fv-block--start h2', PROFILE.input_panel_title);
+  setText('.fv-block--preview h2', PROFILE.output_label);
+  setText('.fv-preview-card strong', PROFILE.output_label);
+  setText('#sampleFillBtn', PROFILE.main_cta);
+  const pairValues = document.querySelectorAll('.fv-block--start .fv-pair dd');
+  if (pairValues[0]) pairValues[0].textContent = '消耗品の行';
+  if (pairValues[1]) pairValues[1].textContent = '残量と使う量を入れて切れそう順を見る';
 }
 
 function runSample() {
@@ -516,6 +547,10 @@ function setupBriefCanvas() {
   }
   if (key === 'route_trace') {
     setupIntroRoute(root);
+    return;
+  }
+  if (key === 'block_fill' && PROFILE.family === 'runout_forecast_log') {
+    setupRunoutForecast(root);
     return;
   }
   if (key === 'block_fill') {
@@ -1195,6 +1230,162 @@ function setupRequestFrame(root) {
 
   mountPresetButtons([{ label: 'レビュー依頼', action: () => { cards = clone(presets['レビュー依頼']); render(); } }]);
   state.helpers.runBriefSample = () => { cards = clone(presets['レビュー依頼']); render(); };
+  render();
+}
+
+function setupRunoutForecast(root) {
+  const presets = {
+    '朝の補充確認': [
+      { name: '麦茶', remaining: 1.2, perDay: 0.4, unit: 'L' },
+      { name: '洗剤', remaining: 220, perDay: 35, unit: 'ml' },
+      { name: 'のど飴', remaining: 8, perDay: 2, unit: '粒' }
+    ]
+  };
+  let rows = clone(presets['朝の補充確認']);
+
+  root.querySelector('#briefInputZone').innerHTML = `
+    <div class="brief-form">
+      <div class="action-row">
+        <input id="runoutName" class="text-input" placeholder="品目を追加">
+        <input id="runoutRemaining" class="mini-input" type="number" min="0" step="0.1" placeholder="残量">
+        <input id="runoutPerDay" class="mini-input" type="number" min="0.1" step="0.1" placeholder="1日で使う量">
+        <input id="runoutUnit" class="mini-input" placeholder="単位">
+        <button id="runoutAddBtn" class="primary-btn" type="button">品目を追加</button>
+      </div>
+    </div>
+    <div class="item-grid" id="runoutEditor"></div>
+  `;
+  root.querySelector('#briefResultZone').innerHTML = `
+    <div class="compartment-grid">
+      <div class="compartment" id="runoutSoon"><strong>今日〜明日</strong></div>
+      <div class="compartment" id="runoutWeek"><strong>今週中</strong></div>
+      <div class="compartment" id="runoutLater"><strong>来週以降</strong></div>
+    </div>
+  `;
+  setResultHint('残量や使う量を直すたび、切れそうな順と買い足し日が棚の上にまとまります。');
+
+  function dueLabel(daysLeft) {
+    if (daysLeft <= 0) return '今日';
+    if (daysLeft === 1) return '明日';
+    return `${daysLeft}日後`;
+  }
+
+  function classify(daysLeft) {
+    if (daysLeft <= 1) return 'soon';
+    if (daysLeft <= 6) return 'week';
+    return 'later';
+  }
+
+  function addRow() {
+    const name = (byId('runoutName').value || '').trim();
+    const remaining = Number(byId('runoutRemaining').value || 0);
+    const perDay = Number(byId('runoutPerDay').value || 0);
+    const unit = (byId('runoutUnit').value || '').trim() || '個';
+    if (!name || remaining <= 0 || perDay <= 0) return;
+    rows.push({ name, remaining, perDay, unit });
+    byId('runoutName').value = '';
+    byId('runoutRemaining').value = '';
+    byId('runoutPerDay').value = '';
+    byId('runoutUnit').value = '';
+    render();
+  }
+
+  function render() {
+    byId('runoutEditor').innerHTML = rows.map((row, idx) => `
+      <div class="item-card">
+        <input class="text-input" data-runout-name="${idx}" value="${escapeHtml(row.name)}">
+        <div class="action-row">
+          <input class="mini-input" data-runout-remaining="${idx}" type="number" min="0" step="0.1" value="${row.remaining}">
+          <input class="mini-input" data-runout-per-day="${idx}" type="number" min="0.1" step="0.1" value="${row.perDay}">
+          <input class="mini-input" data-runout-unit="${idx}" value="${escapeHtml(row.unit)}">
+          <button class="assign-btn" data-runout-remove="${idx}" type="button">削除</button>
+        </div>
+      </div>
+    `).join('');
+
+    root.querySelectorAll('[data-runout-name]').forEach((input) => {
+      input.addEventListener('input', () => {
+        rows[Number(input.dataset.runoutName)].name = input.value;
+        renderResult();
+      });
+    });
+    root.querySelectorAll('[data-runout-remaining]').forEach((input) => {
+      input.addEventListener('input', () => {
+        rows[Number(input.dataset.runoutRemaining)].remaining = Number(input.value || 0);
+        renderResult();
+      });
+    });
+    root.querySelectorAll('[data-runout-per-day]').forEach((input) => {
+      input.addEventListener('input', () => {
+        rows[Number(input.dataset.runoutPerDay)].perDay = Number(input.value || 0.1);
+        renderResult();
+      });
+    });
+    root.querySelectorAll('[data-runout-unit]').forEach((input) => {
+      input.addEventListener('input', () => {
+        rows[Number(input.dataset.runoutUnit)].unit = input.value || '個';
+        renderResult();
+      });
+    });
+    root.querySelectorAll('[data-runout-remove]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        rows.splice(Number(btn.dataset.runoutRemove), 1);
+        render();
+      });
+    });
+    renderResult();
+  }
+
+  function renderResult() {
+    const evaluated = rows.map((row) => {
+      const daysLeft = Math.max(0, Math.ceil(row.remaining / Math.max(row.perDay, 0.1)) - 1);
+      return {
+        ...row,
+        daysLeft,
+        lane: classify(daysLeft)
+      };
+    }).sort((a, b) => a.daysLeft - b.daysLeft || a.name.localeCompare(b.name, 'ja'));
+
+    const renderLane = (lane) => {
+      const items = evaluated.filter((row) => row.lane === lane);
+      return items.length
+        ? items.map((row) => `
+            <div class="overflow-pill">
+              <strong>${escapeHtml(row.name)}</strong>
+              <div class="subline">${dueLabel(row.daysLeft)} / 残り ${row.remaining}${escapeHtml(row.unit)}</div>
+            </div>
+          `).join('')
+        : '<div class="empty-state">まだありません。</div>';
+    };
+
+    byId('runoutSoon').innerHTML = '<strong>今日〜明日</strong>' + renderLane('soon');
+    byId('runoutWeek').innerHTML = '<strong>今週中</strong>' + renderLane('week');
+    byId('runoutLater').innerHTML = '<strong>来週以降</strong>' + renderLane('later');
+
+    const top = evaluated[0];
+    setHeroStat(top ? dueLabel(top.daysLeft) : '未入力');
+    setStatusCards([
+      { label: '最短補充', value: top ? dueLabel(top.daysLeft) : '未入力' },
+      { label: '今日〜明日', value: `${evaluated.filter((row) => row.lane === 'soon').length}件` },
+      { label: '今週中', value: `${evaluated.filter((row) => row.lane === 'week').length}件` }
+    ]);
+    setResultLead(top
+      ? '切れそうな物だけが先に上がるので、感覚で買い足すより早く今日見る棚が決まります。'
+      : '品目を足すと、買い足し日がここに並びます。');
+  }
+
+  byId('runoutAddBtn').addEventListener('click', addRow);
+  ['runoutName', 'runoutRemaining', 'runoutPerDay', 'runoutUnit'].forEach((id) => {
+    byId(id).addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        addRow();
+      }
+    });
+  });
+
+  mountPresetButtons([{ label: '朝の補充確認', action: () => { rows = clone(presets['朝の補充確認']); render(); } }]);
+  state.helpers.runBriefSample = () => { rows = clone(presets['朝の補充確認']); render(); };
   render();
 }
 
