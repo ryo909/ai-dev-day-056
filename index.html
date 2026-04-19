@@ -38,11 +38,11 @@
   .first-view__grid{grid-template-columns:1fr}
 }
 </style><link rel="stylesheet" href="/src/style.css"></head>
-<body><div id="app" data-ui-variant="request" data-primary-layout="request_cards_grid"><section class="first-view first-view--request" data-ready-role="first-view">
+<body><div id="app" data-ui-variant="pantry" data-primary-layout="consumable_rows_with_runout_shelf"><section class="first-view first-view--pantry" data-ready-role="first-view">
   <div class="first-view__top">
     <div>
       <div class="mini-label">Day056</div>
-      <p class="first-view__eyebrow">依頼メモサンド</p>
+      <p class="first-view__eyebrow">補充グリーン</p>
     </div>
     <a class="intro-link" href="https://github.com/ryo909/ai-dev-day-056" target="_blank" rel="noopener">GitHub</a>
   </div>
@@ -59,28 +59,28 @@
     </article>
     <article class="fv-block fv-block--start" data-ready-role="start-block">
       <p class="fv-kicker">最初にやること</p>
-      <h2>空いている枠を埋める</h2>
+      <h2>品目と残量を入れる</h2>
       <dl class="fv-pair">
         <dt>入力 / 操作</dt>
-        <dd>棚の残り具合</dd>
+        <dd>消耗品の行</dd>
       </dl>
       <dl class="fv-pair">
         <dt>サンプル値</dt>
-        <dd>米 20% 卵 10% 洗剤 40%</dd>
+        <dd>残量と使う量を入れて切れそう順を見る</dd>
       </dl>
       <p class="fv-helper">残量と使う頻度を入れると、切れそうな順と買い足し日が分かります。</p>
-      <button id="sampleFillBtn" data-ready-role="primary-cta" class="primary-intro-btn" style="background:linear-gradient(135deg,var(--fv-accent),var(--fv-accent-2))">依頼メモで試す</button>
+      <button id="sampleFillBtn" data-ready-role="primary-cta" class="primary-intro-btn" style="background:linear-gradient(135deg,var(--fv-accent),var(--fv-accent-2))">補充サンプルで試す</button>
       <p class="fv-inline-note">初見なら「例で試す」から始めると、そのまま結果見本まで確認できます。</p>
     </article>
     <article class="fv-block fv-block--preview" data-ready-role="output-preview">
       <p class="fv-kicker">押すと返るもの</p>
-      <h2>今日見る棚はここです</h2>
+      <h2>ここを見ればOKです</h2>
       <p class="fv-preview-copy">押すと返るものの主役を、入力前から見本で確認できます。</p>
       <div class="fv-preview-tokens"><span class="preview-token">使う場面が分かる</span><span class="preview-token">最初の一手が見える</span><span class="preview-token">返る結果が先に分かる</span></div>
       <div class="fv-preview-card">
         <span>返る結果の見本</span>
-        <strong>今日見る棚はここです</strong>
+        <strong>ここを見ればOKです</strong>
       </div>
     </article>
   </div>
-</section><section class="brief-canvas brief-canvas--request"><div id="briefCanvas"></div></section></div><script type="module" src="/src/main.js"></script></body></html>
+</section><section class="brief-canvas brief-canvas--pantry"><div id="briefCanvas"></div></section></div><script type="module" src="/src/main.js"></script></body></html>
